@@ -1,0 +1,37 @@
+{
+  "name": "shopify-sales-exporter",
+  "version": "1.0.0",
+  "description": "Free Shopify app for sales reports with COGS and true profit calculations",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "tunnel": "cloudflared tunnel --url http://localhost:3000"
+  },
+  "keywords": [
+    "shopify",
+    "sales",
+    "reports",
+    "cogs",
+    "profit"
+  ],
+  "author": "Pandora's Deck Box",
+  "license": "MIT",
+  "dependencies": {
+    "@shopify/app-bridge": "^3.7.11",
+    "@shopify/app-bridge-utils": "^3.5.1",
+    "@shopify/shopify-api": "^12.2.0",
+    "@shopify/shopify-app-session-storage-sqlite": "^5.0.4",
+    "better-sqlite3": "^11.8.1",
+    "connect-pg-simple": "^10.0.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "pg": "^8.13.1",
+    "xlsx": "^0.18.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

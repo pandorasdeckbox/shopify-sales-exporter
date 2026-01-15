@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Reports Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+        }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        input[type="date"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="date"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .date-range {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1em;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+        }
+
+        .quick-dates {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .quick-date-btn {
+            background: #e5e7eb;
+            color: #374151;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .quick-date-btn:hover {
+            background: #d1d5db;
+        }
+
+        #loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #results {
+            display: none;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #f6f8fc 0%, #e9ecf5 100%);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .summary-card .label {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .summary-card .value {
+            color: #333;
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .summary-card.profit .value {
+            color: #10b981;
+        }
+
+        .summary-card.revenue .value {
+            color: #667eea;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        tr:hover {
+            background: #f9fafb;
+        }
+
+        .positive {
+            color: #10b981;
+        }
+
+        .negative {
+            color: #ef4444;
+        }
+
+        .shop-info {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #667eea;
+        }
+
+        .close {
+            font-size: 28px;
+            font-weight: bold;
+            color: #999;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr auto;
+            gap: 10px;
+            align-items: end;
+        }
+
+        .settings-table {
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .settings-table th {
+            background: #f5f5f5;
+            text-align: left;
+        }
+
+        .settings-table td button {
+            background: #ef4444;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚙️ Manual COGS Rules</h2>
+                <span class="close" onclick="closeSettings()">&times;</span>
+            </div>
+            <p style="color: #666; margin-bottom: 20px;">
+                Define COGS percentages for products without costs in Shopify. When a product name contains the pattern, 
+                the COGS will be calculated as: Revenue × COGS%
+            </p>
+            
+            <div class="form-group" style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #f0f0f0;">
+                <label>If COGS is Zero, Use This % Instead</label>
+                <input type="number" id="zeroCOGSOverride" min="0" max="100" placeholder="e.g., 55" onchange="saveZeroCOGSOverride()" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px; width: 100px;">
+                <small style="color: #666; display: block; margin-top: 5px;">When a product has no cost in Shopify and no matching rule, apply this percentage of revenue as COGS. Leave blank to use actual costs only.</small>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #f0f0f0;">
+                <label>Filter Month Selector From Date</label>
+                <input type="date" id="storeOpeningDate" value="" onchange="saveStoreOpeningDate()" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                <small style="color: #666; display: block; margin-top: 5px;">Limit months shown in dropdown (e.g., set to 1/1/2025 to only see 2025 onwards). Leave blank to show all order history.</small>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Product Name Contains</label>
+                    <input type="text" id="productPattern" placeholder="e.g., Singles, Custom sale">
+                </div>
+                <div class="form-group">
+                    <label>COGS %</label>
+                    <input type="number" id="cogsPercent" min="0" max="100" placeholder="55">
+                </div>
+                <button class="btn" onclick="addCogsRule()" style="margin-bottom: 0;">Add Rule</button>
+            </div>
+
+            <table class="settings-table">
+                <thead>
+                    <tr>
+                        <th>Product Pattern</th>
+                        <th>COGS %</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="cogsRulesTable">
+                    <!-- Rules will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="header">
+        <div>
+            <h1>📊 Sales Reports</h1>
+            <div class="shop-info" id="shopInfo">Loading...</div>
+        </div>
+        <button class="logout-btn" onclick="openSettings()">⚙️ COGS Settings</button>
+    </div>
+
+    <div class="card">
+        <h2>Generate Report</h2>
+        
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label for="monthSelector">📅 Quick Select by Month</label>
+            <select id="monthSelector" onchange="selectMonth()" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
+                <option value="">-- Select a month --</option>
+            </select>
+        </div>
+
+        <div class="quick-dates">
+            <button class="quick-date-btn" onclick="setDateRange('today')">Today</button>
+            <button class="quick-date-btn" onclick="setDateRange('yesterday')">Yesterday</button>
+            <button class="quick-date-btn" onclick="setDateRange('thisWeek')">This Week</button>
+            <button class="quick-date-btn" onclick="setDateRange('lastWeek')">Last Week</button>
+            <button class="quick-date-btn" onclick="setDateRange('thisMonth')">This Month</button>
+            <button class="quick-date-btn" onclick="setDateRange('lastMonth')">Last Month</button>
+            <button class="quick-date-btn" onclick="setDateRange('thisYear')">This Year</button>
+        </div>
+
+        <div class="date-range">
+            <div class="form-group">
+                <label for="startDate">Start Date</label>
+                <input type="date" id="startDate" required>
+            </div>
+            <div class="form-group">
+                <label for="endDate">End Date</label>
+                <input type="date" id="endDate" required>
+            </div>
+        </div>
+
+        <button class="btn" onclick="generateReport()">Generate Report</button>
+    </div>
+
+    <div id="loading">
+        <div class="spinner"></div>
+        <p>Fetching orders and calculating profits...</p>
+    </div>
+
+    <div id="results">
+        
+        <div class="card">
+            <h2>Summary</h2>
+            <div class="summary-grid" id="summaryGrid"></div>
+        </div>
+
+        <div class="card">
+            <h2>Order Details</h2>
+            <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 15px;">
+                <button class="btn" id="exportBtn" onclick="exportToCSV()">📥 Export to CSV</button>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 0;">
+                    <input type="checkbox" id="separateBySource" onchange="toggleExportButtonText()" style="width: auto;">
+                    Separate reports by source
+                </label>
+            </div>
+            <div style="overflow-x: auto;">
+                <table id="ordersTable">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Date</th>
+                            <th>Source</th>
+                            <th>Revenue</th>
+                            <th>COGS</th>
+                            <th>Profit</th>
+                            <th>Margin %</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Top Products</h2>
+            <div style="overflow-x: auto;">
+                <table id="productsTable">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Qty Sold</th>
+                            <th>Revenue</th>
+                            <th>COGS</th>
+                            <th>Profit</th>
+                            <th>Margin %</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentReportData = null;
+        const urlParams = new URLSearchParams(window.location.search);
+        const shop = urlParams.get('shop');
+        const host = urlParams.get('host');
+        let sessionToken = urlParams.get('id_token'); // Shopify provides this in URL
+
+        // Authenticated fetch helper - requests new token on each call
+        async function authenticatedFetch(url, options = {}) {
+            // For embedded apps, we need to get a fresh session token
+            // Since we can't easily use App Bridge without modules, we'll use the server's session lookup
+            // The server will validate based on shop parameter from initial auth
+            
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers,
+            };
+
+            // Include shop in request so server can look up session
+            const urlObj = new URL(url, window.location.origin);
+            urlObj.searchParams.set('shop', shop);
+
+            const response = await fetch(urlObj.toString(), { ...options, headers });
+            
+            // Handle 401 - session expired or invalid, redirect to OAuth
+            if (response.status === 401) {
+                try {
+                    const errorData = await response.json();
+                    if (errorData.needsReauth) {
+                        console.log('Session invalid, redirecting to OAuth within iframe...');
+                        // Use server-side redirect by navigating within the iframe
+                        const authUrl = errorData.authUrl || `/auth?shop=${shop}`;
+                        window.location.href = authUrl;
+                        return;
+                    }
+                } catch (e) {
+                    // If JSON parse fails, just redirect within iframe
+                    window.location.href = `/auth?shop=${shop}`;
+                }
+            }
+            
+            return response;
+        }
+
+        // Load shop info and month selector
+        async function loadShopInfo() {
+            try {
+                const response = await authenticatedFetch('/api/shop');
+                if (!response.ok) {
+                    throw new Error('Failed to load shop info');
+                }
+                const shop = await response.json();
+                document.getElementById('shopInfo').textContent = `Connected: ${shop.name}`;
+                
+                // Load month selector after shop info
+                await loadMonthSelector();
+            } catch (error) {
+                console.error('Error loading shop:', error);
+                document.getElementById('shopInfo').textContent = 'Error loading shop info';
+            }
+        }
+
+        // Load month selector with all months from oldest order to now
+        async function loadMonthSelector() {
+            try {
+                // Fetch the actual oldest order date from Shopify
+                const response = await authenticatedFetch('/api/oldest-order');
+                let oldestDate;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    oldestDate = new Date(data.oldestOrderDate);
+                    console.log('📅 Oldest order date from Shopify:', oldestDate.toLocaleDateString());
+                } else {
+                    // Default to 2 years ago if API fails
+                    oldestDate = new Date();
+                    oldestDate.setFullYear(oldestDate.getFullYear() - 2);
+                    console.log('📅 Using default date (2 years ago)');
+                }
+                
+                // Check if user has set a filter date (overrides the API date)
+                const filterDateStr = localStorage.getItem('storeOpeningDate');
+                if (filterDateStr) {
+                    // Parse as local date to avoid timezone issues
+                    const parts = filterDateStr.split('-');
+                    const normalizedFilterDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1);
+                    // Use whichever is later: the filter date or the oldest order date
+                    if (normalizedFilterDate > oldestDate) {
+                        oldestDate = normalizedFilterDate;
+                        console.log('📅 Using filter date (overrides oldest order):', oldestDate.toLocaleDateString());
+                    }
+                }
+                
+                const now = new Date();
+                
+                const monthSelector = document.getElementById('monthSelector');
+                const months = [];
+                
+                // Generate all months from oldest to now
+                let current = new Date(oldestDate.getFullYear(), oldestDate.getMonth(), 1);
+                const end = new Date(now.getFullYear(), now.getMonth(), 1);
+                
+                while (current <= end) {
+                    months.push({
+                        year: current.getFullYear(),
+                        month: current.getMonth(),
+                        label: current.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
+                    });
+                    current.setMonth(current.getMonth() + 1);
+                }
+                
+                // Reverse so newest months are first
+                months.reverse();
+                
+                // Clear existing options except the first placeholder
+                monthSelector.innerHTML = '<option value="">-- Select a month --</option>';
+                
+                // Populate select
+                months.forEach(m => {
+                    const option = document.createElement('option');
+                    option.value = JSON.stringify({ year: m.year, month: m.month });
+                    option.textContent = m.label;
+                    monthSelector.appendChild(option);
+                });
+                
+                console.log(`✅ Month selector loaded with ${months.length} months`);
+            } catch (error) {
+                console.error('Error loading month selector:', error);
+            }
+        }
+
+        // Handle month selection
+        function selectMonth() {
+            const monthSelector = document.getElementById('monthSelector');
+            const value = monthSelector.value;
+            
+            if (!value) return;
+            
+            const { year, month } = JSON.parse(value);
+            
+            // First day of the month
+            const startDate = new Date(year, month, 1);
+            // Last day of the month
+            const endDate = new Date(year, month + 1, 0);
+            
+            document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+            document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+        }
+
+        // Set date range helpers
+        function setDateRange(period) {
+            const today = new Date();
+            const endDate = new Date();
+            let startDate = new Date();
+
+            switch(period) {
+                case 'today':
+                    startDate = new Date();
+                    break;
+                case 'yesterday':
+                    startDate.setDate(today.getDate() - 1);
+                    endDate.setDate(today.getDate() - 1);
+                    break;
+                case 'thisWeek':
+                    startDate.setDate(today.getDate() - today.getDay());
+                    break;
+                case 'lastWeek':
+                    startDate.setDate(today.getDate() - today.getDay() - 7);
+                    endDate.setDate(today.getDate() - today.getDay() - 1);
+                    break;
+                case 'thisMonth':
+                    startDate.setDate(1);
+                    break;
+                case 'lastMonth':
+                    startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                    endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+                    break;
+                case 'thisYear':
+                    startDate = new Date(today.getFullYear(), 0, 1);
+                    break;
+            }
+
+            document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+            document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+        }
+
+        // Generate report
+        async function generateReport() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            if (!startDate || !endDate) {
+                alert('Please select start and end dates');
+                return;
+            }
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+
+            try {
+                // Load COGS rules and zero override from localStorage
+                const cogsRules = JSON.parse(localStorage.getItem('cogsRules') || '[]');
+                const zeroCOGSOverride = localStorage.getItem('zeroCOGSOverride') ? 
+                    parseFloat(localStorage.getItem('zeroCOGSOverride')) : null;
+                
+                const response = await authenticatedFetch('/api/generate-report', {
+                    method: 'POST',
+                    body: JSON.stringify({ startDate, endDate, cogsRules, zeroCOGSOverride })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to generate report');
+                }
+
+                const data = await response.json();
+                currentReportData = data;
+                displayReport(data);
+            } catch (error) {
+                console.error('Error generating report:', error);
+                alert('Failed to generate report');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Display report
+        function displayReport(data) {
+            // Summary
+            const summaryGrid = document.getElementById('summaryGrid');
+            const profitMargin = data.summary.totalRevenue > 0 
+                ? (data.summary.totalProfit / data.summary.totalRevenue * 100).toFixed(2)
+                : 0;
+
+            summaryGrid.innerHTML = `
+                <div class="summary-card">
+                    <div class="label">Total Orders</div>
+                    <div class="value">${data.summary.totalOrders}</div>
+                </div>
+                <div class="summary-card revenue">
+                    <div class="label">Total Revenue</div>
+                    <div class="value">$${data.summary.totalRevenue.toFixed(2)}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">Total COGS</div>
+                    <div class="value">$${data.summary.totalCOGS.toFixed(2)}</div>
+                </div>
+                <div class="summary-card profit">
+                    <div class="label">Total Profit</div>
+                    <div class="value">$${data.summary.totalProfit.toFixed(2)}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">Profit Margin</div>
+                    <div class="value">${profitMargin}%</div>
+                </div>
+            `;
+
+            // Orders table
+            const ordersTableBody = document.getElementById('ordersTableBody');
+            ordersTableBody.innerHTML = data.orders.map(order => {
+                const margin = order.revenue > 0 ? (order.profit / order.revenue * 100).toFixed(2) : 0;
+                const profitClass = order.profit >= 0 ? 'positive' : 'negative';
+                const date = new Date(order.createdAt).toLocaleDateString();
+                
+                return `
+                    <tr>
+                        <td><a href="${getOrderUrl(order.orderId)}" target="_blank">${order.orderNumber}</a></td>
+                        <td>${date}</td>
+                        <td>${order.source}</td>
+                        <td>$${order.revenue.toFixed(2)}</td>
+                        <td>$${order.cogs.toFixed(2)}</td>
+                        <td class="${profitClass}">$${order.profit.toFixed(2)}</td>
+                        <td class="${profitClass}">${margin}%</td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Products table
+            const productsTableBody = document.getElementById('productsTableBody');
+            const products = Object.entries(data.summary.productSales)
+                .sort((a, b) => b[1].profit - a[1].profit)
+                .slice(0, 50); // Top 50 products
+
+            productsTableBody.innerHTML = products.map(([name, stats]) => {
+                const margin = stats.revenue > 0 ? (stats.profit / stats.revenue * 100).toFixed(2) : 0;
+                const profitClass = stats.profit >= 0 ? 'positive' : 'negative';
+                
+                return `
+                    <tr>
+                        <td>${name}</td>
+                        <td>${stats.quantity}</td>
+                        <td>$${stats.revenue.toFixed(2)}</td>
+                        <td>$${stats.cogs.toFixed(2)}</td>
+                        <td class="${profitClass}">$${stats.profit.toFixed(2)}</td>
+                        <td class="${profitClass}">${margin}%</td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('results').style.display = 'block';
+        }
+
+        // Toggle export button text based on checkbox
+        function toggleExportButtonText() {
+            const btn = document.getElementById('exportBtn');
+            const isChecked = document.getElementById('separateBySource').checked;
+            btn.textContent = isChecked ? '📥 Export to XLSX' : '📥 Export to CSV';
+        }
+
+        // Export to CSV
+        async function exportToCSV() {
+            if (!currentReportData) {
+                alert('Please generate a report first');
+                return;
+            }
+
+            try {
+                // Load COGS rules and zero override from localStorage
+                const cogsRules = JSON.parse(localStorage.getItem('cogsRules') || '[]');
+                const zeroCOGSOverride = localStorage.getItem('zeroCOGSOverride') ? 
+                    parseFloat(localStorage.getItem('zeroCOGSOverride')) : null;
+                
+                const separateBySource = document.getElementById('separateBySource').checked;
+                
+                // Get date range for filename
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                const startDateObj = new Date(startDate);
+                const endDateObj = new Date(endDate);
+                
+                const startMonth = (startDateObj.getMonth() + 1).toString().padStart(2, '0');
+                const startDay = startDateObj.getDate().toString().padStart(2, '0');
+                const startYear = startDateObj.getFullYear();
+                
+                const endMonth = (endDateObj.getMonth() + 1).toString().padStart(2, '0');
+                const endDay = endDateObj.getDate().toString().padStart(2, '0');
+                const endYear = endDateObj.getFullYear();
+                
+                // Base filename without extension
+                let baseFilename;
+                if (startMonth === endMonth && startYear === endYear) {
+                    const monthName = startDateObj.toLocaleString('en-US', { month: 'long' });
+                    baseFilename = `sales-report_${monthName}-${startYear}`;
+                } else {
+                    baseFilename = `sales-report_${startMonth}-${startDay}-${startYear}_to_${endMonth}-${endDay}-${endYear}`;
+                }
+                
+                if (separateBySource && currentReportData.rawOrders) {
+                    // Export as Excel with sheets per source
+                    const response = await authenticatedFetch('/api/export-excel', {
+                        method: 'POST',
+                        body: JSON.stringify({ 
+                            reportData: currentReportData,
+                            cogsRules: cogsRules,
+                            zeroCOGSOverride: zeroCOGSOverride
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to export Excel');
+                    }
+
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${baseFilename}.xlsx`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    // Single CSV export (original behavior)
+                    const response = await authenticatedFetch('/api/export-csv', {
+                        method: 'POST',
+                        body: JSON.stringify({ 
+                            reportData: currentReportData,
+                            cogsRules: cogsRules,
+                            zeroCOGSOverride: zeroCOGSOverride
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to export');
+                    }
+
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${baseFilename}.csv`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                }
+            } catch (error) {
+                console.error('Error exporting:', error);
+                alert('Failed to export report');
+            }
+        }
+
+        // Helper to construct Shopify order URL
+        function getOrderUrl(orderId) {
+            const shop = new URLSearchParams(window.location.search).get('shop');
+            // Extract numeric ID from GraphQL ID (format: gid://shopify/Order/123456)
+            const numericId = orderId.split('/').pop();
+            return `https://${shop}/admin/orders/${numericId}`;
+        }
+
+        // COGS Settings Management
+        function openSettings() {
+            const modal = document.getElementById('settingsModal');
+            modal.style.display = 'block';
+            loadCogsRules();
+            loadStoreOpeningDate();
+            loadZeroCOGSOverride();
+        }
+
+        function loadStoreOpeningDate() {
+            const savedDate = localStorage.getItem('storeOpeningDate');
+            if (savedDate) {
+                document.getElementById('storeOpeningDate').value = savedDate;
+            }
+        }
+
+        function loadZeroCOGSOverride() {
+            const savedOverride = localStorage.getItem('zeroCOGSOverride');
+            if (savedOverride) {
+                document.getElementById('zeroCOGSOverride').value = savedOverride;
+            }
+        }
+
+        function saveZeroCOGSOverride() {
+            const value = document.getElementById('zeroCOGSOverride').value;
+            if (value) {
+                const numValue = parseFloat(value);
+                if (isNaN(numValue) || numValue < 0 || numValue > 100) {
+                    alert('Please enter a valid percentage (0-100)');
+                    return;
+                }
+                localStorage.setItem('zeroCOGSOverride', value);
+                console.log('✅ Zero COGS override saved:', value + '%');
+            } else {
+                localStorage.removeItem('zeroCOGSOverride');
+                console.log('✅ Zero COGS override cleared');
+            }
+        }
+
+        async function saveStoreOpeningDate() {
+            const date = document.getElementById('storeOpeningDate').value;
+            if (date) {
+                localStorage.setItem('storeOpeningDate', date);
+                // Reload month selector with new filter
+                await loadMonthSelector();
+                alert('Month filter saved! Selector updated.');
+            } else {
+                // Clear the filter
+                localStorage.removeItem('storeOpeningDate');
+                await loadMonthSelector();
+                alert('Month filter cleared! Showing all order history.');
+            }
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        function loadCogsRules() {
+            const rules = JSON.parse(localStorage.getItem('cogsRules') || '[]');
+            const tbody = document.getElementById('cogsRulesTable');
+            tbody.innerHTML = rules.map((rule, index) => `
+                <tr>
+                    <td>${rule.pattern}</td>
+                    <td>${rule.cogsPercent}%</td>
+                    <td><button onclick="deleteCogsRule(${index})">Delete</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function addCogsRule() {
+            const pattern = document.getElementById('productPattern').value.trim();
+            const cogsPercent = parseFloat(document.getElementById('cogsPercent').value);
+            
+            if (!pattern || isNaN(cogsPercent) || cogsPercent < 0 || cogsPercent > 100) {
+                alert('Please enter a valid product name pattern and COGS percentage (0-100)');
+                return;
+            }
+
+            const rules = JSON.parse(localStorage.getItem('cogsRules') || '[]');
+            rules.push({ pattern, cogsPercent });
+            localStorage.setItem('cogsRules', JSON.stringify(rules));
+            
+            document.getElementById('productPattern').value = '';
+            document.getElementById('cogsPercent').value = '';
+            loadCogsRules();
+        }
+
+        function deleteCogsRule(index) {
+            const rules = JSON.parse(localStorage.getItem('cogsRules') || '[]');
+            rules.splice(index, 1);
+            localStorage.setItem('cogsRules', JSON.stringify(rules));
+            loadCogsRules();
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            if (!shop) {
+                alert('Missing shop parameter - please reinstall the app');
+                return;
+            }
+            loadShopInfo();
+            // Set default date range to this month
+            setDateRange('thisMonth');
+        });
+    </script>
+</body>
+</html>

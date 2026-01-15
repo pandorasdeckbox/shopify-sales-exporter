@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopify Sales Exporter - Free COGS Reports</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 60px 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+        }
+
+        .features {
+            text-align: left;
+            margin: 30px 0;
+            padding: 0 20px;
+        }
+
+        .feature {
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .feature::before {
+            content: "✓";
+            color: #667eea;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+        .install-section {
+            margin-top: 40px;
+        }
+
+        .shop-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 1em;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            transition: border-color 0.3s;
+        }
+
+        .shop-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .install-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 600;
+        }
+
+        .install-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .install-btn:active {
+            transform: translateY(0);
+        }
+
+        .note {
+            margin-top: 20px;
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #4ade80;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="badge">100% FREE FOREVER</div>
+        <h1>📊 Sales Exporter</h1>
+        <p class="subtitle">Get the COGS reports Shopify doesn't give you</p>
+
+        <div class="features">
+            <div class="feature">Sales reports by month or custom date range</div>
+            <div class="feature">Cost of Goods Sold (COGS) per item and order</div>
+            <div class="feature">True profit calculations (Revenue - COGS)</div>
+            <div class="feature">Product performance breakdown</div>
+            <div class="feature">Export to CSV for your own analysis</div>
+            <div class="feature">No monthly fees, completely free</div>
+        </div>
+
+        <div class="install-section">
+            <h3 style="margin-bottom: 15px; color: #333;">Connect Your Store</h3>
+            <form id="installForm">
+                <input 
+                    type="text" 
+                    id="shopInput" 
+                    class="shop-input" 
+                    placeholder="your-store.myshopify.com"
+                    required
+                    pattern="[a-zA-Z0-9-]+\.myshopify\.com"
+                >
+                <button type="submit" class="install-btn">Install App</button>
+            </form>
+            <p class="note">
+                We only request read access to your orders and products.<br>
+                Your data stays private and secure.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('installForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            let shop = document.getElementById('shopInput').value.trim();
+            
+            // Clean up shop domain
+            shop = shop.replace(/^https?:\/\//, '');
+            if (!shop.endsWith('.myshopify.com')) {
+                shop = shop + '.myshopify.com';
+            }
+
+            // Redirect to auth
+            window.location.href = `/auth?shop=${encodeURIComponent(shop)}`;
+        });
+    </script>
+</body>
+</html>
