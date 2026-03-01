@@ -1,0 +1,12 @@
+node_modules/
+.env
+.git/
+.DS_Store
+*.log
+sessions.db
+server-old.js
+dashboard-old.html
+APP_STORE_SUBMISSION.md
+CODE_REVIEW.md
+CONTRIBUTING.md
+PRIVACY.md

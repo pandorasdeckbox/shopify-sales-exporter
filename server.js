@@ -28,6 +28,7 @@ import * as XLSX from 'xlsx';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import pg from 'pg';
 
 dotenv.config();
 
@@ -39,9 +40,91 @@ const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 // Initialize session storage
-const sessionStorage = new SQLiteSessionStorage('sessions.db');
+// Use PostgreSQL on Railway (ephemeral filesystem loses SQLite), SQLite for local dev
+let sessionStorage;
+
+if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgres')) {
+  // PostgreSQL session storage for Railway
+  const pool = new pg.Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL.includes('railway') ? { rejectUnauthorized: false } : false,
+  });
+
+  // Create sessions table if it doesn't exist
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS shopify_sessions (
+      id TEXT PRIMARY KEY,
+      shop TEXT NOT NULL,
+      state TEXT,
+      is_online BOOLEAN DEFAULT FALSE,
+      scope TEXT,
+      expires INTEGER,
+      access_token TEXT,
+      online_access_info TEXT
+    )
+  `);
+  console.log('✅ PostgreSQL session storage initialized');
+
+  // Custom PostgreSQL session storage adapter (implements Shopify SessionStorage interface)
+  sessionStorage = {
+    async storeSession(session) {
+      await pool.query(
+        `INSERT INTO shopify_sessions (id, shop, state, is_online, scope, expires, access_token)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (id) DO UPDATE SET
+           shop = EXCLUDED.shop,
+           state = EXCLUDED.state,
+           is_online = EXCLUDED.is_online,
+           scope = EXCLUDED.scope,
+           expires = EXCLUDED.expires,
+           access_token = EXCLUDED.access_token`,
+        [session.id, session.shop, session.state, session.isOnline, session.scope, session.expires, session.accessToken]
+      );
+      return true;
+    },
+    async loadSession(id) {
+      const result = await pool.query('SELECT * FROM shopify_sessions WHERE id = $1', [id]);
+      if (result.rows.length === 0) return undefined;
+      const row = result.rows[0];
+      return new Session({
+        id: row.id,
+        shop: row.shop,
+        state: row.state,
+        isOnline: row.is_online,
+        scope: row.scope,
+        expires: row.expires ? new Date(row.expires) : undefined,
+        accessToken: row.access_token,
+      });
+    },
+    async deleteSession(id) {
+      await pool.query('DELETE FROM shopify_sessions WHERE id = $1', [id]);
+      return true;
+    },
+    async deleteSessions(ids) {
+      await pool.query('DELETE FROM shopify_sessions WHERE id = ANY($1)', [ids]);
+      return true;
+    },
+    async findSessionsByShop(shop) {
+      const result = await pool.query('SELECT * FROM shopify_sessions WHERE shop = $1', [shop]);
+      return result.rows.map(row => new Session({
+        id: row.id,
+        shop: row.shop,
+        state: row.state,
+        isOnline: row.is_online,
+        scope: row.scope,
+        expires: row.expires ? new Date(row.expires) : undefined,
+        accessToken: row.access_token,
+      }));
+    },
+  };
+} else {
+  // SQLite for local development
+  sessionStorage = new SQLiteSessionStorage('sessions.db');
+  console.log('✅ SQLite session storage initialized (local dev)');
+}
 
 // Initialize Shopify API
 const shopify = shopifyApi({
@@ -53,13 +136,23 @@ const shopify = shopifyApi({
   apiVersion: ApiVersion.January24,
   isEmbeddedApp: true,
   sessionStorage: sessionStorage,
-  logger: { level: LogSeverity.Debug },
+  logger: { level: IS_PRODUCTION ? LogSeverity.Warning : LogSeverity.Debug },
   useOnlineTokens: false, // Use offline tokens to avoid cookie issues
 });
 
 // Middleware
 app.use(express.json({ limit: '50mb' })); // Increase limit for large report data
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Trust proxy when behind Railway's load balancer
+if (IS_PRODUCTION) {
+  app.set('trust proxy', 1);
+}
+
+// Health check endpoint for Railway
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 // Root route - always serve dashboard for embedded apps
 app.get('/', (req, res) => {
@@ -947,7 +1040,8 @@ function parseShippingCostFromNotes(note) {
   return 0;
 }
 
-app.listen(PORT, () => {
-  console.log(`Shopify Sales Exporter (Embedded) running on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Shopify Sales Exporter running on port ${PORT}`);
   console.log(`App URL: ${process.env.APP_URL}`);
+  console.log(`Environment: ${IS_PRODUCTION ? 'production' : 'development'}`);
 });
