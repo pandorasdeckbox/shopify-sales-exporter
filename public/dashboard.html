@@ -613,6 +613,14 @@
             }
         }
 
+        // Format a Date as YYYY-MM-DD using local timezone (avoids .toISOString() UTC shift)
+        function formatLocalDate(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
         // Handle month selection
         function selectMonth() {
             const monthSelector = document.getElementById('monthSelector');
@@ -627,8 +635,8 @@
             // Last day of the month
             const endDate = new Date(year, month + 1, 0);
             
-            document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
-            document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+            document.getElementById('startDate').value = formatLocalDate(startDate);
+            document.getElementById('endDate').value = formatLocalDate(endDate);
         }
 
         // Set date range helpers
@@ -664,8 +672,8 @@
                     break;
             }
 
-            document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
-            document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+            document.getElementById('startDate').value = formatLocalDate(startDate);
+            document.getElementById('endDate').value = formatLocalDate(endDate);
         }
 
         // Generate report
@@ -808,21 +816,16 @@
                 // Get date range for filename
                 const startDate = document.getElementById('startDate').value;
                 const endDate = document.getElementById('endDate').value;
-                const startDateObj = new Date(startDate);
-                const endDateObj = new Date(endDate);
                 
-                const startMonth = (startDateObj.getMonth() + 1).toString().padStart(2, '0');
-                const startDay = startDateObj.getDate().toString().padStart(2, '0');
-                const startYear = startDateObj.getFullYear();
-                
-                const endMonth = (endDateObj.getMonth() + 1).toString().padStart(2, '0');
-                const endDay = endDateObj.getDate().toString().padStart(2, '0');
-                const endYear = endDateObj.getFullYear();
+                // Parse dates directly from YYYY-MM-DD strings to avoid UTC/local timezone shift
+                const [startYear, startMonth, startDay] = startDate.split('-');
+                const [endYear, endMonth, endDay] = endDate.split('-');
                 
                 // Base filename without extension
                 let baseFilename;
                 if (startMonth === endMonth && startYear === endYear) {
-                    const monthName = startDateObj.toLocaleString('en-US', { month: 'long' });
+                    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+                    const monthName = monthNames[parseInt(startMonth) - 1];
                     baseFilename = `sales-report_${monthName}-${startYear}`;
                 } else {
                     baseFilename = `sales-report_${startMonth}-${startDay}-${startYear}_to_${endMonth}-${endDay}-${endYear}`;

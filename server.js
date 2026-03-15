@@ -657,7 +657,11 @@ async function fetchAllOrders(session, startDate, endDate) {
     }
   `;
 
-  const queryString = `created_at:>='${startDate}' AND created_at:<='${endDate}'`;
+  // Use exclusive upper bound (< next day) to avoid ambiguous end-of-day boundary
+  const endDateObj = new Date(endDate + 'T00:00:00Z');
+  endDateObj.setUTCDate(endDateObj.getUTCDate() + 1);
+  const nextDay = endDateObj.toISOString().split('T')[0];
+  const queryString = `created_at:>='${startDate}' AND created_at:<'${nextDay}'`;
   
   console.log('   GraphQL query filter:', queryString);
 
@@ -714,7 +718,16 @@ async function fetchAllOrders(session, startDate, endDate) {
     }
   }
 
-  return allOrders;
+  // Server-side date filter as a safety net against Shopify query edge cases
+  const filtered = allOrders.filter(order => {
+    const d = new Date(order.created_at);
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    return dateStr >= startDate && dateStr <= endDate;
+  });
+  if (filtered.length < allOrders.length) {
+    console.log(`   Filtered out ${allOrders.length - filtered.length} orders outside date range`);
+  }
+  return filtered;
 }
 
 /**
@@ -741,7 +754,8 @@ function generateReportData(orders, cogsRules, zeroCOGSOverride, startDate, endD
   let orderDetails = [];
 
   orders.forEach(order => {
-    const orderDate = new Date(order.created_at).toISOString().split('T')[0];
+    const od = new Date(order.created_at);
+    const orderDate = `${od.getFullYear()}-${String(od.getMonth()+1).padStart(2,'0')}-${String(od.getDate()).padStart(2,'0')}`;
     const orderRevenue = parseFloat(order.total_price || 0);
     let orderCOGS = 0;
 
